@@ -265,8 +265,11 @@ mod tests {
     }
 
     mod grpc_web {
+        use std::time::Duration;
+
         use super::*;
-        use http::HeaderValue;
+        use http::{HeaderName, HeaderValue};
+        use tower_http::cors::{AllowOrigin, CorsLayer};
         use tower_layer::Layer;
 
         fn request() -> Request<Body> {
@@ -278,9 +281,36 @@ mod tests {
                 .unwrap()
         }
 
+        fn cors() -> CorsLayer {
+            const DEFAULT_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
+            const DEFAULT_EXPOSED_HEADERS: [&str; 3] =
+                ["grpc-status", "grpc-message", "grpc-status-details-bin"];
+            const DEFAULT_ALLOW_HEADERS: [&str; 4] =
+                ["x-grpc-web", "content-type", "x-user-agent", "grpc-timeout"];
+
+            CorsLayer::new()
+                .allow_origin(AllowOrigin::mirror_request())
+                .allow_credentials(true)
+                .max_age(DEFAULT_MAX_AGE)
+                .expose_headers(
+                    DEFAULT_EXPOSED_HEADERS
+                        .iter()
+                        .cloned()
+                        .map(HeaderName::from_static)
+                        .collect::<Vec<HeaderName>>(),
+                )
+                .allow_headers(
+                    DEFAULT_ALLOW_HEADERS
+                        .iter()
+                        .cloned()
+                        .map(HeaderName::from_static)
+                        .collect::<Vec<HeaderName>>(),
+                )
+        }
+
         #[tokio::test]
         async fn default_cors_config() {
-            let mut svc = crate::enable(Svc);
+            let mut svc = crate::enable(Svc, cors());
             let res = svc.call(request()).await.unwrap();
 
             assert_eq!(res.status(), StatusCode::OK);
@@ -296,7 +326,7 @@ mod tests {
 
         #[tokio::test]
         async fn without_origin() {
-            let mut svc = crate::enable(Svc);
+            let mut svc = crate::enable(Svc, cors());
 
             let mut req = request();
             req.headers_mut().remove(ORIGIN);
@@ -308,7 +338,7 @@ mod tests {
 
         #[tokio::test]
         async fn only_post_and_options_allowed() {
-            let mut svc = crate::enable(Svc);
+            let mut svc = crate::enable(Svc, cors());
 
             for method in &[
                 Method::GET,
@@ -333,7 +363,7 @@ mod tests {
 
         #[tokio::test]
         async fn grpc_web_content_types() {
-            let mut svc = crate::enable(Svc);
+            let mut svc = crate::enable(Svc, cors());
 
             for ct in &[GRPC_WEB_TEXT, GRPC_WEB_PROTO, GRPC_WEB_TEXT_PROTO, GRPC_WEB] {
                 let mut req = request();
@@ -348,7 +378,11 @@ mod tests {
     }
 
     mod options {
+        use std::time::Duration;
+
         use super::*;
+        use http::{HeaderName, HeaderValue};
+        use tower_http::cors::{AllowOrigin, CorsLayer};
 
         fn request() -> Request<Body> {
             Request::builder()
@@ -360,9 +394,36 @@ mod tests {
                 .unwrap()
         }
 
+        fn cors() -> CorsLayer {
+            const DEFAULT_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
+            const DEFAULT_EXPOSED_HEADERS: [&str; 3] =
+                ["grpc-status", "grpc-message", "grpc-status-details-bin"];
+            const DEFAULT_ALLOW_HEADERS: [&str; 4] =
+                ["x-grpc-web", "content-type", "x-user-agent", "grpc-timeout"];
+
+            CorsLayer::new()
+                .allow_origin(AllowOrigin::mirror_request())
+                .allow_credentials(true)
+                .max_age(DEFAULT_MAX_AGE)
+                .expose_headers(
+                    DEFAULT_EXPOSED_HEADERS
+                        .iter()
+                        .cloned()
+                        .map(HeaderName::from_static)
+                        .collect::<Vec<HeaderName>>(),
+                )
+                .allow_headers(
+                    DEFAULT_ALLOW_HEADERS
+                        .iter()
+                        .cloned()
+                        .map(HeaderName::from_static)
+                        .collect::<Vec<HeaderName>>(),
+                )
+        }
+
         #[tokio::test]
         async fn valid_grpc_web_preflight() {
-            let mut svc = crate::enable(Svc);
+            let mut svc = crate::enable(Svc, cors());
             let res = svc.call(request()).await.unwrap();
 
             assert_eq!(res.status(), StatusCode::OK);
@@ -370,8 +431,11 @@ mod tests {
     }
 
     mod grpc {
+        use std::time::Duration;
+
         use super::*;
-        use http::HeaderValue;
+        use http::{HeaderName, HeaderValue};
+        use tower_http::cors::{AllowOrigin, CorsLayer};
 
         fn request() -> Request<Body> {
             Request::builder()
@@ -381,9 +445,36 @@ mod tests {
                 .unwrap()
         }
 
+        fn cors() -> CorsLayer {
+            const DEFAULT_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
+            const DEFAULT_EXPOSED_HEADERS: [&str; 3] =
+                ["grpc-status", "grpc-message", "grpc-status-details-bin"];
+            const DEFAULT_ALLOW_HEADERS: [&str; 4] =
+                ["x-grpc-web", "content-type", "x-user-agent", "grpc-timeout"];
+
+            CorsLayer::new()
+                .allow_origin(AllowOrigin::mirror_request())
+                .allow_credentials(true)
+                .max_age(DEFAULT_MAX_AGE)
+                .expose_headers(
+                    DEFAULT_EXPOSED_HEADERS
+                        .iter()
+                        .cloned()
+                        .map(HeaderName::from_static)
+                        .collect::<Vec<HeaderName>>(),
+                )
+                .allow_headers(
+                    DEFAULT_ALLOW_HEADERS
+                        .iter()
+                        .cloned()
+                        .map(HeaderName::from_static)
+                        .collect::<Vec<HeaderName>>(),
+                )
+        }
+
         #[tokio::test]
         async fn h2_is_ok() {
-            let mut svc = crate::enable(Svc);
+            let mut svc = crate::enable(Svc, cors());
 
             let req = request();
             let res = svc.call(req).await.unwrap();
@@ -393,7 +484,7 @@ mod tests {
 
         #[tokio::test]
         async fn h1_is_err() {
-            let mut svc = crate::enable(Svc);
+            let mut svc = crate::enable(Svc, cors());
 
             let req = Request::builder()
                 .header(CONTENT_TYPE, GRPC)
@@ -406,7 +497,7 @@ mod tests {
 
         #[tokio::test]
         async fn content_type_variants() {
-            let mut svc = crate::enable(Svc);
+            let mut svc = crate::enable(Svc, cors());
 
             for variant in &["grpc", "grpc+proto", "grpc+thrift", "grpc+foo"] {
                 let mut req = request();
@@ -423,7 +514,11 @@ mod tests {
     }
 
     mod other {
+        use std::time::Duration;
+
         use super::*;
+        use http::HeaderName;
+        use tower_http::cors::{AllowOrigin, CorsLayer};
 
         fn request() -> Request<Body> {
             Request::builder()
@@ -432,9 +527,36 @@ mod tests {
                 .unwrap()
         }
 
+        fn cors() -> CorsLayer {
+            const DEFAULT_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
+            const DEFAULT_EXPOSED_HEADERS: [&str; 3] =
+                ["grpc-status", "grpc-message", "grpc-status-details-bin"];
+            const DEFAULT_ALLOW_HEADERS: [&str; 4] =
+                ["x-grpc-web", "content-type", "x-user-agent", "grpc-timeout"];
+
+            CorsLayer::new()
+                .allow_origin(AllowOrigin::mirror_request())
+                .allow_credentials(true)
+                .max_age(DEFAULT_MAX_AGE)
+                .expose_headers(
+                    DEFAULT_EXPOSED_HEADERS
+                        .iter()
+                        .cloned()
+                        .map(HeaderName::from_static)
+                        .collect::<Vec<HeaderName>>(),
+                )
+                .allow_headers(
+                    DEFAULT_ALLOW_HEADERS
+                        .iter()
+                        .cloned()
+                        .map(HeaderName::from_static)
+                        .collect::<Vec<HeaderName>>(),
+                )
+        }
+
         #[tokio::test]
         async fn h1_is_err() {
-            let mut svc = crate::enable(Svc);
+            let mut svc = crate::enable(Svc, cors());
             let res = svc.call(request()).await.unwrap();
 
             assert_eq!(res.status(), StatusCode::BAD_REQUEST)
@@ -442,7 +564,7 @@ mod tests {
 
         #[tokio::test]
         async fn h2_is_ok() {
-            let mut svc = crate::enable(Svc);
+            let mut svc = crate::enable(Svc, cors());
             let mut req = request();
             *req.version_mut() = Version::HTTP_2;
 

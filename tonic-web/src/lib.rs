@@ -125,32 +125,13 @@ type BoxError = Box<dyn std::error::Error + Send + Sync>;
 /// Enable a tonic service to handle grpc-web requests with the default configuration.
 ///
 /// You can customize the CORS configuration composing the [`GrpcWebLayer`] with the cors layer of your choice.
-pub fn enable<S>(service: S) -> CorsGrpcWeb<S>
+pub fn enable<S>(service: S, cors: CorsLayer) -> CorsGrpcWeb<S>
 where
     S: Service<http::Request<hyper::Body>, Response = http::Response<BoxBody>>,
     S: Clone + Send + 'static,
     S::Future: Send + 'static,
     S::Error: Into<BoxError> + Send,
 {
-    let cors = CorsLayer::new()
-        .allow_origin(AllowOrigin::mirror_request())
-        .allow_credentials(true)
-        .max_age(DEFAULT_MAX_AGE)
-        .expose_headers(
-            DEFAULT_EXPOSED_HEADERS
-                .iter()
-                .cloned()
-                .map(HeaderName::from_static)
-                .collect::<Vec<HeaderName>>(),
-        )
-        .allow_headers(
-            DEFAULT_ALLOW_HEADERS
-                .iter()
-                .cloned()
-                .map(HeaderName::from_static)
-                .collect::<Vec<HeaderName>>(),
-        );
-
     tower_layer::layer_fn(|s| CorsGrpcWeb(cors.layer(s))).layer(GrpcWebService::new(service))
 }
 
